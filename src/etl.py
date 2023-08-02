@@ -4,7 +4,7 @@ from pyspark import SparkContext
 import os
 import copy
 import time
-import statsmodels
+# import statsmodels
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -25,18 +25,18 @@ from pyspark.sql.types import TimestampType
 from pyspark.sql.functions import col, expr, udf, sequence
 
 if __name__ == "__main__":
-    spark = SparkSession.builder.appName("Generate_100_columns").getOrCreate()
+    spark = SparkSession.builder.appName("Example_overflow").getOrCreate()
     sc = spark.sparkContext
     # Other configs
 
     # Other configs
-    pd.options.display.float_format = "{:.2f}".format
+    # pd.options.display.float_format = "{:.2f}".format
 
     # Useful directory variables
-    src_path = os.getcwd()
-    root_path = os.path.dirname(src_path)
-    data_path = root_path + "/datasets"
-    visualization_path = root_path + "/data_visualization"
+    # src_path = os.getcwd()
+    # root_path = os.path.dirname(src_path)
+    # data_path = root_path + "/datasets"
+    # visualization_path = root_path + "/data_visualization"
 
     # Start counting time
     start_t = time.time()
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     # consumption_df: this will suffer a left join at the end of each iteration and will be the container for all the consumption columns
     consumption_df = spark.createDataFrame(time_df.rdd, time_df.schema)
     consumption_df = consumption_df.withColumn("total_average_power_consumption_W", lit(0))
-    for node in node_list[:100]:  # All the consumption related cluster nodes
+    for node in node_list[:-3]:  # All the consumption related cluster nodes
         sql_query_node_consumption = """
                         SELECT 
                             EXPLODE(power) as (time, node_{}_power_consumption) 
@@ -113,8 +113,10 @@ if __name__ == "__main__":
         consumption_df = consumption_df.fillna(0, subset=["node_{}_average_power_consumption".format(node)])
         consumption_df = consumption_df.withColumn("total_average_power_consumption_W", col("total_average_power_consumption_W")+col("node_{}_average_power_consumption".format(node)))
         consumption_df = consumption_df.drop("node_{}_average_power_consumption".format(node))
-    # consumption_df.cache()
-    consumption_df.write.repartittion(1).parquet("javier_example")
+   
+
+    consumption_df.write.parquet("example_overflow")
     end_t = time.time()
     print("Time in seconds " + str(end_t - start_t))
+
     spark.stop()
