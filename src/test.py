@@ -24,7 +24,7 @@ from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 import pickle
 
-%matplotlib inline
+
 pd.options.display.float_format = "{:.2f}".format
 sns.set_style("whitegrid")
 plt.rc("xtick", labelsize=15)
@@ -46,7 +46,6 @@ consumption_train.head(2)
 # consumption_train[consumption_train.duplicated()]
 # pressure_train[pressure_train.duplicated()]
 
-print(pressure_train.n_working_compressors.value_counts())
 
 consumption_train_pressure = consumption_train[
     ["time", "max_pressure_Bars", "n_working_compressors"]
@@ -92,6 +91,19 @@ pressure_train.set_index("time", inplace=True)
 pressure_train = pressure_train.resample("H").mean().copy()
 pressure_train.reset_index(inplace=True)
 pressure_train = pd.merge(pressure_train, pressure_train_pressure, on="time")
+
+pressure_train["year"] = pressure_train.time.dt.year
+pressure_train["month"] = pressure_train.time.dt.month
+pressure_train["week"] = pressure_train.time.dt.week
+pressure_train["day"] = pressure_train.time.dt.day
+pressure_train["hour"] = pressure_train.time.dt.hour
+
+consumption_train["year"] = consumption_train.time.dt.year
+consumption_train["month"] = consumption_train.time.dt.month
+consumption_train["week"] = consumption_train.time.dt.week
+consumption_train["day"] = consumption_train.time.dt.day
+consumption_train["hour"] = consumption_train.time.dt.hour
+
 
 pressure_train.to_parquet(data_path + "/05_model_input/" + "pressure_train_1hour")
 consumption_train.to_parquet(data_path + "/05_model_input/" + "consumption_train_1hour")
