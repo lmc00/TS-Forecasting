@@ -4,6 +4,7 @@ from pyspark import SparkContext
 import os
 import copy
 import time
+
 # import statsmodels
 import pandas as pd
 import numpy as np
@@ -65,13 +66,14 @@ if __name__ == "__main__":
         spark.sql("SELECT node from df").rdd.flatMap(lambda x: x).collect()
     )  # Getting the list with all the node names
 
-
     # Obtaning each consumption node:
     # We are having two time related Spark Dataframes that originally prior to iterate will be identical
     # time_df: will remain unchanged during the whole execution, just a reference to ensure all the times are met and if not a null is given for the corresponding electrical consumption column
     # consumption_df: this will suffer a left join at the end of each iteration and will be the container for all the consumption columns
     consumption_df = spark.createDataFrame(time_df.rdd, time_df.schema)
-    consumption_df = consumption_df.withColumn("total_average_power_consumption_W", lit(0))
+    consumption_df = consumption_df.withColumn(
+        "total_average_power_consumption_W", lit(0)
+    )
     for node in node_list[:-3]:  # All the consumption related cluster nodes
         sql_query_node_consumption = """
                         SELECT 
@@ -107,13 +109,20 @@ if __name__ == "__main__":
         node_consumption = node_consumption.select(
             "time", "node_{}_average_power_consumption".format(node)
         ).sort(F.asc("time"))
-        consumption_df = consumption_df.join(node_consumption, ["time"], how="left").sort(
-            F.asc("time")
+        consumption_df = consumption_df.join(
+            node_consumption, ["time"], how="left"
+        ).sort(F.asc("time"))
+        consumption_df = consumption_df.fillna(
+            0, subset=["node_{}_average_power_consumption".format(node)]
         )
-        consumption_df = consumption_df.fillna(0, subset=["node_{}_average_power_consumption".format(node)])
-        consumption_df = consumption_df.withColumn("total_average_power_consumption_W", col("total_average_power_consumption_W")+col("node_{}_average_power_consumption".format(node)))
-        consumption_df = consumption_df.drop("node_{}_average_power_consumption".format(node))
-   
+        consumption_df = consumption_df.withColumn(
+            "total_average_power_consumption_W",
+            col("total_average_power_consumption_W")
+            + col("node_{}_average_power_consumption".format(node)),
+        )
+        consumption_df = consumption_df.drop(
+            "node_{}_average_power_consumption".format(node)
+        )
 
     consumption_df.write.parquet("example_overflow")
     end_t = time.time()
