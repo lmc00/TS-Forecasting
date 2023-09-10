@@ -7,9 +7,12 @@ Structure:
 
 
   -src (the source code):
-      -*.ipynb  
-      -utils.py  
+  
+      --*.ipynb  
+      --utils.py  
+  
   -datasets  (different steps of the data life cycle. Following the data engineering convention https://towardsdatascience.com/the-importance-of-layered-thinking-in-data-engineering-a09f685edc71  ) 
+  
   -data visualization: (different figures employed for EDA )
 
 
